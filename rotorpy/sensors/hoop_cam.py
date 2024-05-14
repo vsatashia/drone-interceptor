@@ -38,7 +38,7 @@ class HoopCam:
         v_drone = quadrotor_state[6:9]
         v_hoop = (hoop_pose[:3] - self.prev_hoop_pose[:3]) / dt
         blur_direction = (v_hoop - v_drone) / np.linalg.norm(v_hoop - v_drone) if (np.linalg.norm(v_hoop - v_drone) > 0.001) else np.zeros(3)
-        blur_strength = np.linalg.norm(v_hoop - v_drone) * dt
+        blur_strength = 10*np.linalg.norm(v_hoop - v_drone) * dt
         
         # Apply motion blur to the hoop
         estimated_pose = self.motion_blur(hoop_pose, blur_strength, blur_direction)
@@ -61,19 +61,14 @@ class HoopCam:
             hoop_estimate (6,): Noisy motion-blurred estimate of hoop pose
         """
 
-        # Calculate dot product to get motion blur strength along blur_direction
-        blur_xyz = -blur_strength * blur_direction
-        
-        # # Project rotational motion onto blur direction
-        # drone_rotational_motion = np.array([self.quadrotor_state[3], self.quadrotor_state[4], self.quadrotor_state[5]])
-        # rotation_projection = np.dot(drone_rotational_motion, blur_direction)
-        # blur += blur_strength * rotation_projection
+        blur_xyz = blur_direction
         blur_rpy = np.zeros(3)
 
         blur = np.concatenate((blur_xyz, blur_rpy))
         
         # Generate random noise based on normal distribution
-        noise = np.random.normal(scale=.1) * blur
+        scale_factor = 0.05 # part that needs to be tuned for realistic noise
+        noise = np.random.normal(scale= scale_factor * blur_strength) * blur
         
         # Add noise to the hoop position and orientation
         hoop_estimate = hoop_pose + noise
@@ -92,23 +87,23 @@ if __name__ == "__main__":
             hoop_pose = hoop_trajectory[i]
             
             measured_pose = cam.measurement(quad_state, 0.5, hoop_pose, dt)
-            print(measured_pose)
+
             hoop_poses.append(measured_pose)
         
         return np.array(hoop_poses)
 
     # Generate example trajectories
-    num_steps = 100
-    dt = 0.1
+    num_steps = 1000
+    dt = 1
 
     # Quadrotor trajectory
     quadrotor_trajectory = np.zeros((num_steps, 12))
-    quadrotor_trajectory[:, 0] = 10* np.cos(np.linspace(-2*np.pi, 2*np.pi, num_steps))  # sine x motion
-    quadrotor_trajectory[:, 6] = 10* np.sin(np.linspace(-2*np.pi, 2*np.pi, num_steps))  # cosine velocity in x
+    quadrotor_trajectory[:, 0] = 1 * np.cos(2 * np.linspace(-2*np.pi, 2*np.pi, num_steps))  # sine x motion
+    quadrotor_trajectory[:, 6] = 1 * np.sin(2 * np.linspace(-2*np.pi, 2*np.pi, num_steps))  # cosine velocity in x
 
     # Hoop trajectory
     hoop_trajectory = np.zeros((num_steps, 6))
-    hoop_trajectory[:, 0] = np.linspace(5, 5, num_steps)  # stationary
+    hoop_trajectory[:, 0] = np.cos(10*np.linspace(0, 2*np.pi, num_steps))  # stationary
     hoop_trajectory[:, 1] = 10  # Constant y position
 
     # Simulate motion and measurements
