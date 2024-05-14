@@ -10,7 +10,7 @@ class HoopCam:
     pose of a dynamic object (the hoop) in the camera's FOV while moving on a quadrotor
     """
 
-    def __init__(self, field_of_view=90, init_quadrotor_state=np.zeros(12), init_hoop_radius=0.5, init_hoop_pose=np.eye(6)):
+    def __init__(self, field_of_view=90, init_quadrotor_state=np.zeros(12), init_hoop_radius=0.5, init_hoop_pose=np.zeros(6)):
         """
         Constructor for the HoopCam object
         """
@@ -56,36 +56,28 @@ class HoopCam:
             blur_direction (3,): Direction of motion blur in world coordinates
         
         Outputs:
-           hoop_estimate (6,): Noisy motion-blurred estimate of hoop pose
+            hoop_estimate (6,): Noisy motion-blurred estimate of hoop pose
         """
-        drone_x, drone_y, drone_z, drone_roll, drone_pitch, drone_yaw, drone_vx, drone_vy, drone_vz, drone_v_roll, drone_v_pitch, drone_v_yaw = self.quadrotor_state
-        hoop_x, hoop_y, hoop_z, hoop_roll, hoop_pitch, hoop_yaw = self.hoop_pose
-        
-        # Calculate motion vector of the hoop
-        hoop_vx = hoop_x - drone_x
-        hoop_vy = hoop_y - drone_y
-        hoop_vz = hoop_z - drone_z
-        
+
         # Calculate dot product to get motion blur strength along blur_direction
-        blur = blur_strength * (hoop_vx * blur_direction[0] + hoop_vy * blur_direction[1] + hoop_vz * blur_direction[2])
+        blur_xyz = blur_strength * blur_direction
         
-        # Project rotational motion onto blur direction
-        drone_rotational_motion = np.array([drone_v_roll, drone_v_pitch, drone_v_yaw])
-        rotation_projection = np.dot(drone_rotational_motion, blur_direction)
-        blur += blur_strength * rotation_projection
+        # # Project rotational motion onto blur direction
+        # drone_rotational_motion = np.array([self.quadrotor_state[3], self.quadrotor_state[4], self.quadrotor_state[5]])
+        # rotation_projection = np.dot(drone_rotational_motion, blur_direction)
+        # blur += blur_strength * rotation_projection
+        blur_rpy = np.zeros(3)
+
+        blur = np.concatenate((blur_xyz, blur_rpy))
         
         # Generate random noise based on normal distribution
-        noise = np.random.normal(scale=abs(blur * .1), size=6)
+        noise = np.random.normal(scale=.1) * blur
         
         # Add noise to the hoop position and orientation
-        x_blurred = hoop_x + noise[0]
-        y_blurred = hoop_y + noise[1]
-        z_blurred = hoop_z + noise[2]
-        roll_blurred = hoop_roll + noise[3]
-        pitch_blurred = hoop_pitch + noise[4]
-        yaw_blurred = hoop_yaw + noise[5]
+        hoop_estimate = self.hoop_pose + noise
+        print(self.hoop_pose.shape)
         
-        return x_blurred, y_blurred, z_blurred, roll_blurred, pitch_blurred, yaw_blurred
+        return hoop_estimate
 
 
 if __name__ == "__main__":
