@@ -117,7 +117,7 @@ class Environment():
         self.use_mocap = use_mocap
 
         start_time = clk.time()
-        (time, state, control, flat, imu_measurements, imu_gt, mocap_measurements, state_estimate, exit) = simulate(self.world,
+        (time, state, control, flat, imu_measurements, imu_gt, mocap_measurements, state_estimate, exit, hoop_error) = simulate(self.world,
                                                                                                                     self.vehicle.initial_state,
                                                                                                                     self.vehicle,
                                                                                                                     self.controller,
@@ -140,7 +140,7 @@ class Environment():
             print('SIM TIME -- %3.2f seconds | WALL TIME -- %3.2f seconds' % (min(self.t_final, time[-1]) , (clk.time()-start_time)))
             print('EXIT STATUS -- '+exit.value)
 
-        self.result = dict(time=time, state=state, control=control, flat=flat, imu_measurements=imu_measurements, imu_gt=imu_gt, mocap_measurements=mocap_measurements, state_estimate=state_estimate, exit=exit)
+        self.result = dict(time=time, state=state, control=control, flat=flat, imu_measurements=imu_measurements, imu_gt=imu_gt, mocap_measurements=mocap_measurements, state_estimate=state_estimate, exit=exit, hoop_error=hoop_error)
 
         visualizer = Plotter(self.result, self.world)
         if animate_bool:

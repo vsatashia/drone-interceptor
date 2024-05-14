@@ -21,7 +21,7 @@ class Plotter():
         self.s, self.s_des, self.M, self.T, self.wind,
         self.accel, self.gyro, self.accel_gt,
         self.x_mc, self.v_mc, self.q_mc, self.w_mc, 
-        self.filter_state, self.covariance, self.sd) = self.unpack_results(results)
+        self.filter_state, self.covariance, self.sd, self.hoop_error) = self.unpack_results(results)
 
         self.R = Rotation.from_quat(self.q).as_matrix()
         self.R_mc = Rotation.from_quat(self.q_mc).as_matrix() # Rotation as measured by motion capture.
@@ -43,6 +43,20 @@ class Plotter():
         self.world.draw(ax)
         ax.plot3D(self.x[:,0], self.x[:,1], self.x[:,2], 'b.')
         ax.plot3D(self.x_des[:,0], self.x_des[:,1], self.x_des[:,2], 'k')
+
+        # Hoop Error
+        (fig, axes) = plt.subplots(nrows=2, ncols=1, sharex=True, num='Hoop Target/Cumulative Target Error vs Time')
+        ax = axes[0]
+        ax.plot(self.time[1:], self.hoop_error)
+        ax.set_ylabel('Squared Error between Quadrotor and Drone')
+        ax.set_xlabel('Time (s)')
+        ax.grid('major')
+        ax.set_title('Hoop Target/Cumulative Target Error vs Time')
+        ax = axes[1]
+        ax.plot(self.time[1:], np.cumsum(self.hoop_error))
+        ax.set_ylabel('Cumulative Squared Error between Quadrotor and Drone')
+        ax.set_xlabel('Time (s)')
+        ax.grid('major')
 
         # Position and Velocity vs. Time
         (fig, axes) = plt.subplots(nrows=2, ncols=1, sharex=True, num='Pos/Vel vs Time')
@@ -208,6 +222,7 @@ class Plotter():
         imu_gt              = result['imu_gt']
         mocap               = result['mocap_measurements']
         state_estimate      = result['state_estimate']
+        hoop_error          = result['hoop_error']
 
         # Unpack each result into NumPy arrays
         x = state['x']
@@ -245,7 +260,7 @@ class Plotter():
             sd = []
             self.estimator_exists = False
 
-        return (time, x, x_des, v, v_des, q, q_des, w, s, s_des, M, T, wind, accel, gyro, accel_gt, x_mc, v_mc, q_mc, w_mc, filter_state, covariance, sd)
+        return (time, x, x_des, v, v_des, q, q_des, w, s, s_des, M, T, wind, accel, gyro, accel_gt, x_mc, v_mc, q_mc, w_mc, filter_state, covariance, sd, hoop_error)
 
 def plot_map(ax, world_data, equal_aspect=True, color=None, edgecolor=None, alpha=1, world_bounds=True, axes=True):
     """
