@@ -3,7 +3,7 @@ Imports
 """
 import numpy as np
 
-from rotorpy.trajectories.minsnap import MinSnap
+from rotorpy.trajectories.polynomial_traj import Polynomial
 
 class HoopTraj(object):
     """
@@ -22,6 +22,8 @@ class HoopTraj(object):
         # TODO add starting point
         self.start = np.array([0, 0, 0])
 
+        self.traj_start_time = 0
+
     def update(self, t):
         """
         Given the present time, return the desired flat output and derivatives.
@@ -39,22 +41,22 @@ class HoopTraj(object):
                 yaw_dot,  yaw rate, rad/s
         """
 
-        if not hasattr(self, 'ms'):
-            pt1 = self.start
-            v1 = np.array([0, 0, 0])
-            yaw1 = 0
-        else:
-            flat_output = self.ms.update(t - self.ms_start_time)
+        pt1 = self.start
+        v1 = np.array([0, 0, 0])
+        yaw1 = 0
+
+        if hasattr(self, 'traj'):
+            flat_output = self.traj.update(t - self.traj_start_time)
 
             pt1 = flat_output['x']
             v1 = flat_output['x_dot']
             yaw1 = flat_output['yaw']
 
         # TODO update destination point
-        pt2 = np.array([2, -1, 1.5])
+        pt2 = np.array([np.cos(2 * np.pi / 15 * t), np.sin(2 * np.pi / 15 * t), 1])
         v2 = np.array([0, 0, 0])
 
-        self.ms = MinSnap(points=np.array([pt1, pt2]), yaw_angles=np.array([yaw1, 0]), v_start=v1, v_end=v2, v_avg=3, v_max=5)
-        self.ms_start_time = t
+        self.traj = Polynomial(points=np.array([pt1, pt2]), v_avg=10)
+        self.traj_start_time = t
 
-        return self.ms.update(0)
+        return self.traj.update(0)
