@@ -29,6 +29,7 @@ from rotorpy.wind.spatial_winds import WindTunnel
 # You can also optionally customize the IMU and motion capture sensor models. If not specified, the default parameters will be used. 
 from rotorpy.sensors.imu import Imu
 from rotorpy.sensors.external_mocap import MotionCapture
+from rotorpy.sensors.hoop_cam import HoopCam
 
 # You can also specify a state estimator. This is optional. If no state estimator is supplied it will default to null. 
 from rotorpy.estimators.wind_ukf import WindUKF
@@ -55,6 +56,10 @@ world = World.from_file(os.path.abspath(os.path.join(os.path.dirname(__file__),'
 
 # "world" is an optional argument. If you don't load a world it'll just provide an empty playground! 
 
+def hoop_pose(t):
+    return np.array([np.cos(2 * np.pi / 15 * t), np.sin(2 * np.pi / 15 * t), 1, 0, 0, 0])
+    # return np.array([ 0, 0, 2.5 * np.sin(2 * np.pi / 10 * t)])
+
 # An instance of the simulator can be generated as follows: 
 sim_instance = Environment(vehicle=Multirotor(quad_params),           # vehicle object, must be specified. 
                            controller=SE3Control(quad_params),        # controller object, must be specified.
@@ -65,7 +70,9 @@ sim_instance = Environment(vehicle=Multirotor(quad_params),           # vehicle 
                            mocap        = None,                       # OPTIONAL: mocap sensor object, if none is supplied it will choose a default mocap.  
                            estimator    = None,                       # OPTIONAL: estimator object
                            world        = world,                      # OPTIONAL: the world, same name as the file in rotorpy/worlds/, default (None) is empty world
-                           safety_margin= 0.25                        # OPTIONAL: defines the radius (in meters) of the sphere used for collision checking
+                           safety_margin= 0.25,                       # OPTIONAL: defines the radius (in meters) of the sphere used for collision checking
+                           hoop_cam=HoopCam(),
+                           real_hoop_pose=hoop_pose
                        )
 
 # This generates an Environment object that has a unique vehicle, controller, and trajectory.  

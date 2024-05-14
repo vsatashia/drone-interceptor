@@ -3,6 +3,7 @@ import copy
 import numpy as np
 from numpy.linalg import norm
 from scipy.spatial.transform import Rotation
+from rotorpy.estimators.hoopestimator import HoopEstimator
 
 class ExitStatus(Enum):
     """ Exit status values indicate the reason for simulation termination. """
@@ -15,7 +16,7 @@ class ExitStatus(Enum):
     FLY_AWAY     = 'Failure: Your quadrotor is out of control; it flew away with a position error greater than 20 meters.'
     COLLISION    = 'Failure: Your quadrotor collided with an object.'
 
-def simulate(world, initial_state, vehicle, controller, trajectory, wind_profile, imu, mocap, estimator, t_final, t_step, safety_margin, use_mocap, terminate=None):
+def simulate(world, initial_state, vehicle, controller, trajectory, wind_profile, imu, mocap, estimator, t_final, t_step, safety_margin, use_mocap, hoop_cam, real_hoop_pose, terminate=None):
     """
     Perform a vehicle simulation and return the numerical results.
 
@@ -91,7 +92,7 @@ def simulate(world, initial_state, vehicle, controller, trajectory, wind_profile
     mocap_measurements = []
     imu_gt = []
     state_estimate = []
-    flat    = [sanitize_trajectory_dic(trajectory.update(time[-1]))]
+    flat    = [sanitize_trajectory_dic(trajectory.update(time[-1], np.zeros((6,))))]
     mocap_measurements.append(mocap.measurement(state[-1], with_noise=True, with_artifacts=False))
     if use_mocap:
         # In this case the controller will use the motion capture estimate of the pose and twist for control. 
@@ -105,6 +106,8 @@ def simulate(world, initial_state, vehicle, controller, trajectory, wind_profile
 
     exit_status = None
 
+    hoop_estimator = HoopEstimator()
+
     while True:
         exit_status = exit_status or safety_exit(world, safety_margin, state[-1], flat[-1], control[-1])
         exit_status = exit_status or normal_exit(time[-1], state[-1])
@@ -114,7 +117,16 @@ def simulate(world, initial_state, vehicle, controller, trajectory, wind_profile
         time.append(time[-1] + t_step)
         state[-1]['wind'] = wind_profile.update(time[-1], state[-1]['x'])
         state.append(vehicle.step(state[-1], control[-1], t_step))
-        flat.append(sanitize_trajectory_dic(trajectory.update(time[-1])))
+
+        state_hoop = np.zeros((12,))
+        state_hoop[:3] = state[-1]['x']
+        state_hoop[3:6] = Rotation.from_quat(state[-1]['q']).as_euler('xyz')
+        state_hoop[6:9] = state[-1]['v']
+        state_hoop[9:12] = state[-1]['w']
+
+        hoop_estimate = hoop_estimator.step(hoop_cam.measurement(state_hoop, 2, real_hoop_pose(time[-1]), t_step)[:3])
+
+        flat.append(sanitize_trajectory_dic(trajectory.update(time[-1], hoop_estimate['filter_state'])))
         mocap_measurements.append(mocap.measurement(state[-1], with_noise=True, with_artifacts=mocap.with_artifacts))
         state_estimate.append(estimator.step(state[-1], control[-1], imu_measurements[-1], mocap_measurements[-1]))
         if use_mocap:

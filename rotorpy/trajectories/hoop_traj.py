@@ -24,7 +24,7 @@ class HoopTraj(object):
 
         self.traj_start_time = 0
 
-    def update(self, t):
+    def update(self, t, target):
         """
         Given the present time, return the desired flat output and derivatives.
 
@@ -53,8 +53,11 @@ class HoopTraj(object):
             yaw1 = flat_output['yaw']
 
         # TODO update destination point
-        pt2 = np.array([np.cos(2 * np.pi / 15 * t), np.sin(2 * np.pi / 15 * t), 1])
-        v2 = np.array([0, 0, 0])
+        # pt2 = np.array([np.cos(2 * np.pi / 15 * t), np.sin(2 * np.pi / 15 * t), 1])
+        # v2 = np.array([0, 0, 0])
+
+        v2 = target[3:6]
+        pt2 = target[0:3] + v2 * 0  # interpolate for 0.5s time horizon
 
         self.traj = Polynomial(points=np.array([pt1, pt2]), v_avg=10)
         self.traj_start_time = t

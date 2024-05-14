@@ -29,6 +29,8 @@ class Environment():
                        estimator    = None,     # estimator object
                        sim_rate     = 100,      # The update frequency of the simulator in Hz
                        safety_margin = 0.25,    # The radius of the safety region around the robot. 
+                       hoop_cam = None,         # Hoop Camera sensor
+                       real_hoop_pose = None    # function that returns the groundtruth hoop position
                        ):
 
         self.sim_rate = sim_rate
@@ -86,6 +88,9 @@ class Environment():
         else:
             self.estimator = estimator
 
+        self.hoop_cam = hoop_cam
+        self.real_hoop_pose = real_hoop_pose
+
         return 
 
     def run(self,   t_final      = 10,       # The maximum duration of the environment in seconds
@@ -125,6 +130,8 @@ class Environment():
                                                                                                                     self.t_step,
                                                                                                                     self.safety_margin,
                                                                                                                     self.use_mocap,
+                                                                                                                    self.hoop_cam,
+                                                                                                                    self.real_hoop_pose,
                                                                                                                     terminate=self.terminate,
                                                                                                                     )
         if verbose:
