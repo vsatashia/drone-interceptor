@@ -19,7 +19,7 @@ class HoopCam:
 
         # Hoop parameters
         self.prev_hoop_radius: float = 0.5
-        self.prev_hoop_pose: np.ndarray = np.eye(4)
+        self.prev_hoop_pose: np.ndarray = np.zeros(6)
         self.hoop_radius: float = init_hoop_radius
         self.hoop_pose: np.ndarray = init_hoop_pose
         
@@ -36,16 +36,18 @@ class HoopCam:
 
         # Relative velocity to find blur direction
         v_drone = quadrotor_state[6:9]
-        v_hoop = hoop_pose[:3]
-        blur_direction = (v_hoop - v_drone) / np.linalg.norm(v_hoop - v_drone)
+        v_hoop = (hoop_pose[:3] - self.prev_hoop_pose[:3]) / dt
+        blur_direction = (v_hoop - v_drone) / np.linalg.norm(v_hoop - v_drone) if (np.linalg.norm(v_hoop - v_drone) > 0.001) else np.zeros(3)
         blur_strength = np.linalg.norm(v_hoop - v_drone) * dt
         
         # Apply motion blur to the hoop
-        self.hoop_pose = self.motion_blur(blur_strength, blur_direction)
-
+        estimated_pose = self.motion_blur(hoop_pose, blur_strength, blur_direction)
+        self.prev_hoop_pose = hoop_pose
+        self.prev_hoop_radius = hoop_radius
+        self.hoop_pose = estimated_pose
         return self.hoop_pose
 
-    def motion_blur(self, blur_strength, blur_direction):
+    def motion_blur(self, hoop_pose, blur_strength, blur_direction):
         """
         Simulate motion blur on moving hoop relative to the moving quadrotor
         
@@ -60,7 +62,7 @@ class HoopCam:
         """
 
         # Calculate dot product to get motion blur strength along blur_direction
-        blur_xyz = blur_strength * blur_direction
+        blur_xyz = -blur_strength * blur_direction
         
         # # Project rotational motion onto blur direction
         # drone_rotational_motion = np.array([self.quadrotor_state[3], self.quadrotor_state[4], self.quadrotor_state[5]])
@@ -74,8 +76,7 @@ class HoopCam:
         noise = np.random.normal(scale=.1) * blur
         
         # Add noise to the hoop position and orientation
-        hoop_estimate = self.hoop_pose + noise
-        print(self.hoop_pose.shape)
+        hoop_estimate = hoop_pose + noise
         
         return hoop_estimate
 
@@ -91,6 +92,7 @@ if __name__ == "__main__":
             hoop_pose = hoop_trajectory[i]
             
             measured_pose = cam.measurement(quad_state, 0.5, hoop_pose, dt)
+            print(measured_pose)
             hoop_poses.append(measured_pose)
         
         return np.array(hoop_poses)
@@ -101,8 +103,8 @@ if __name__ == "__main__":
 
     # Quadrotor trajectory
     quadrotor_trajectory = np.zeros((num_steps, 12))
-    # quadrotor_trajectory[:, 0] = np.cos(np.linspace(0, 2*np.pi, num_steps))  # sine x motion
-    # quadrotor_trajectory[:, 6] = np.sin(np.linspace(0, 2*np.pi, num_steps))  # cosine velocity in x
+    quadrotor_trajectory[:, 0] = 10* np.cos(np.linspace(-2*np.pi, 2*np.pi, num_steps))  # sine x motion
+    quadrotor_trajectory[:, 6] = 10* np.sin(np.linspace(-2*np.pi, 2*np.pi, num_steps))  # cosine velocity in x
 
     # Hoop trajectory
     hoop_trajectory = np.zeros((num_steps, 6))
