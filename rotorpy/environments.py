@@ -103,7 +103,9 @@ class Environment():
                     animate_bool    = False,    # Boolean: determines if the animation of vehicle state will play. 
                     animate_wind    = False,    # Boolean: determines if the animation will include a wind vector.
                     verbose         = False,    # Boolean: will print statistics regarding the simulation. 
-                    fname   = None      # Filename is specified if you want to save the animation. Default location is the home directory. 
+                    fname   = None,      # Filename is specified if you want to save the animation. Default location is the home directory. 
+                    lookahead = 0,
+                    v_avg = 10
                     ):
 
         """
@@ -133,6 +135,8 @@ class Environment():
                                                                                                                     self.hoop_cam,
                                                                                                                     self.real_hoop_pose,
                                                                                                                     terminate=self.terminate,
+                                                                                                                    lookahead=lookahead,
+                                                                                                                    v_avg=v_avg
                                                                                                                     )
         if verbose:
             # Print relevant statistics or simulator status indicators here

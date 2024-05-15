@@ -24,7 +24,7 @@ class HoopTraj(object):
 
         self.traj_start_time = 0
 
-    def update(self, t, target):
+    def update(self, t, target, lookahead_t, v_avg):
         """
         Given the present time, return the desired flat output and derivatives.
 
@@ -57,9 +57,9 @@ class HoopTraj(object):
         # v2 = np.array([0, 0, 0])
 
         v2 = target[3:6]
-        pt2 = target[0:3] + v2 * 0.5  # interpolate for 0.5s time horizon
+        pt2 = target[0:3] + v2 * lookahead_t  # interpolate for specified time horizon
 
-        self.traj = Polynomial(points=np.array([pt1, pt2]), v_avg=100)
+        self.traj = Polynomial(points=np.array([pt1, pt2]), v_avg=v_avg)
         self.traj_start_time = t
 
         return self.traj.update(0)

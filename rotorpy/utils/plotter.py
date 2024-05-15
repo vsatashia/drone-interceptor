@@ -56,13 +56,13 @@ class Plotter():
         # Hoop Error
         (fig, axes) = plt.subplots(nrows=2, ncols=1, sharex=True, num='Hoop Target/Cumulative Target Error vs Time')
         ax = axes[0]
-        ax.plot(self.time[1:], self.hoop_error)
+        ax.plot(self.time, self.hoop_error)
         ax.set_ylabel('Squared Error between Quadrotor and Drone')
         ax.set_xlabel('Time (s)')
         ax.grid('major')
         ax.set_title('Hoop Target/Cumulative Target Error vs Time')
         ax = axes[1]
-        ax.plot(self.time[1:], np.cumsum(self.hoop_error))
+        ax.plot(self.time, np.cumsum(self.hoop_error))
         ax.set_ylabel('Cumulative Squared Error between Quadrotor and Drone')
         ax.set_xlabel('Time (s)')
         ax.grid('major')

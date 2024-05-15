@@ -16,7 +16,7 @@ class ExitStatus(Enum):
     FLY_AWAY     = 'Failure: Your quadrotor is out of control; it flew away with a position error greater than 20 meters.'
     COLLISION    = 'Failure: Your quadrotor collided with an object.'
 
-def simulate(world, initial_state, vehicle, controller, trajectory, wind_profile, imu, mocap, estimator, t_final, t_step, safety_margin, use_mocap, hoop_cam, real_hoop_pose, terminate=None):
+def simulate(world, initial_state, vehicle, controller, trajectory, wind_profile, imu, mocap, estimator, t_final, t_step, safety_margin, use_mocap, hoop_cam, real_hoop_pose, terminate=None, lookahead=0, v_avg=10):
     """
     Perform a vehicle simulation and return the numerical results.
 
@@ -92,7 +92,7 @@ def simulate(world, initial_state, vehicle, controller, trajectory, wind_profile
     mocap_measurements = []
     imu_gt = []
     state_estimate = []
-    flat    = [sanitize_trajectory_dic(trajectory.update(time[-1], np.zeros((6,))))]
+    flat    = [sanitize_trajectory_dic(trajectory.update(time[-1], np.zeros((6,)), lookahead, v_avg))]
     mocap_measurements.append(mocap.measurement(state[-1], with_noise=True, with_artifacts=False))
     if use_mocap:
         # In this case the controller will use the motion capture estimate of the pose and twist for control. 
@@ -107,7 +107,7 @@ def simulate(world, initial_state, vehicle, controller, trajectory, wind_profile
     exit_status = None
 
     hoop_estimator = HoopEstimator()
-    hoop_error = []
+    hoop_error = [np.linalg.norm(real_hoop_pose(time[-1])[:3] - state[-1]['x']) ** 2]
     hoop_pose = [real_hoop_pose(0)[:3]]
 
     while True:
@@ -131,7 +131,7 @@ def simulate(world, initial_state, vehicle, controller, trajectory, wind_profile
         hoop_error.append(np.linalg.norm(real_hoop_pose(time[-1])[:3] - state[-1]['x']) ** 2)
         hoop_pose.append(real_hoop_pose(time[-1])[:3])
 
-        flat.append(sanitize_trajectory_dic(trajectory.update(time[-1], hoop_estimate['filter_state'])))
+        flat.append(sanitize_trajectory_dic(trajectory.update(time[-1], hoop_estimate['filter_state'], lookahead, v_avg)))
         mocap_measurements.append(mocap.measurement(state[-1], with_noise=True, with_artifacts=mocap.with_artifacts))
         state_estimate.append(estimator.step(state[-1], control[-1], imu_measurements[-1], mocap_measurements[-1]))
         if use_mocap:
@@ -153,6 +153,7 @@ def simulate(world, initial_state, vehicle, controller, trajectory, wind_profile
     hoop_error = np.array(hoop_error)
     hoop_pose = np.array(hoop_pose)
 
+    print(lookahead, v_avg)
     print("Minimum Tracking Error", np.min(hoop_error))
     print("Cumulative Tracking Error", np.cumsum(hoop_error)[-1])
 

@@ -57,9 +57,9 @@ world = World.from_file(os.path.abspath(os.path.join(os.path.dirname(__file__),'
 # "world" is an optional argument. If you don't load a world it'll just provide an empty playground! 
 
 def hoop_pose(t):
-    # return np.array([0.5, 0.5, 2, 0, 0, 0]) * t + 0.5 * np.array([0, 0, -0.5, 0, 0, 0]) * (t ** 2) + np.array([-2, -2, -2, 0, 0, 0])  # parabola
+    return np.array([0.5, 0.5, 3, 0, 0, 0]) * t + 0.5 * np.array([0, 0, -0.5, 0, 0, 0]) * (t ** 2) + np.array([-2, -2, -2, 0, 0, 0])  # parabola
     # return np.array([1, 1, 1, 0, 0, 0]) * (t - 3) + np.array([0.5, -0.75, 0.25, 0, 0, 0])  # line
-    return np.array([np.cos(2 * np.pi / 15 * t), np.sin(2 * np.pi / 15 * t), 1, 0, 0, 0])  # circle
+    # return np.array([np.cos(2 * np.pi / 15 * t), np.sin(2 * np.pi / 15 * t), 1, 0, 0, 0])  # circle
 
 # An instance of the simulator can be generated as follows: 
 sim_instance = Environment(vehicle=Multirotor(quad_params),           # vehicle object, must be specified. 
@@ -98,18 +98,75 @@ sim_instance.vehicle.initial_state = x0
 # All the arguments are listed below with their descriptions. 
 # You can save the animation (if animating) using the fname argument. Default is None which won't save it.
 
-results = sim_instance.run(t_final      = 20,       # The maximum duration of the environment in seconds
-                           use_mocap    = False,       # Boolean: determines if the controller should use the motion capture estimates. 
-                           terminate    = False,       # Boolean: if this is true, the simulator will terminate when it reaches the last waypoint.
-                           plot            = True,     # Boolean: plots the vehicle states and commands   
-                           plot_mocap      = True,     # Boolean: plots the motion capture pose and twist measurements
-                           plot_estimator  = True,     # Boolean: plots the estimator filter states and covariance diagonal elements
-                           plot_imu        = True,     # Boolean: plots the IMU measurements
-                           animate_bool    = True,     # Boolean: determines if the animation of vehicle state will play. 
-                           animate_wind    = True,    # Boolean: determines if the animation will include a scaled wind vector to indicate the local wind acting on the UAV. 
-                           verbose         = True,     # Boolean: will print statistics regarding the simulation. 
-                           fname   = None # Filename is specified if you want to save the animation. The save location is rotorpy/data_out/. 
+results = sim_instance.run(t_final      = 10,       # The maximum duration of the environment in seconds
+                        use_mocap    = False,       # Boolean: determines if the controller should use the motion capture estimates. 
+                        terminate    = False,       # Boolean: if this is true, the simulator will terminate when it reaches the last waypoint.
+                        plot            = True,     # Boolean: plots the vehicle states and commands   
+                        plot_mocap      = False,     # Boolean: plots the motion capture pose and twist measurements
+                        plot_estimator  = False,     # Boolean: plots the estimator filter states and covariance diagonal elements
+                        plot_imu        = False,     # Boolean: plots the IMU measurements
+                        animate_bool    = False,     # Boolean: determines if the animation of vehicle state will play. 
+                        animate_wind    = False,    # Boolean: determines if the animation will include a scaled wind vector to indicate the local wind acting on the UAV. 
+                        verbose         = False,     # Boolean: will print statistics regarding the simulation. 
+                        fname   = None, # Filename is specified if you want to save the animation. The save location is rotorpy/data_out/. 
+                        lookahead = 0.5,
+                        v_avg = 160,
+            )
+
+lookahead_values = np.arange(0, 3.5, 0.5)
+v_values = np.arange(20, 220, 20)
+
+heatmap = np.zeros((len(lookahead_values), len(v_values)))
+
+for i in range(len(lookahead_values)):
+    for j in range(len(v_values)):
+        sim_instance = Environment(vehicle=Multirotor(quad_params),           # vehicle object, must be specified. 
+                                controller=SE3Control(quad_params),        # controller object, must be specified.
+                                trajectory=HoopTraj(),                     # trajectory object, must be specified.
+                                wind_profile=NoWind(),                     # OPTIONAL: wind profile object, if none is supplied it will choose no wind. 
+                                sim_rate     = 100,                        # OPTIONAL: The update frequency of the simulator in Hz. Default is 100 Hz.
+                                imu          = None,                       # OPTIONAL: imu sensor object, if none is supplied it will choose a default IMU sensor.
+                                mocap        = None,                       # OPTIONAL: mocap sensor object, if none is supplied it will choose a default mocap.  
+                                estimator    = None,                       # OPTIONAL: estimator object
+                                world        = world,                      # OPTIONAL: the world, same name as the file in rotorpy/worlds/, default (None) is empty world
+                                safety_margin= 0.25,                       # OPTIONAL: defines the radius (in meters) of the sphere used for collision checking
+                                hoop_cam=HoopCam(),
+                                real_hoop_pose=hoop_pose
+                            )
+        
+        x0 = {'x': np.array([0,0,0]),
+            'v': np.zeros(3,),
+            'q': np.array([0, 0, 0, 1]), # [i,j,k,w]
+            'w': np.zeros(3,),
+            'wind': np.array([0,0,0]),  # Since wind is handled elsewhere, this value is overwritten
+            'rotor_speeds': np.array([1788.53, 1788.53, 1788.53, 1788.53])}
+        sim_instance.vehicle.initial_state = x0
+
+
+        results = sim_instance.run(t_final      = 10,       # The maximum duration of the environment in seconds
+                                use_mocap    = False,       # Boolean: determines if the controller should use the motion capture estimates. 
+                                terminate    = False,       # Boolean: if this is true, the simulator will terminate when it reaches the last waypoint.
+                                plot            = False,     # Boolean: plots the vehicle states and commands   
+                                plot_mocap      = False,     # Boolean: plots the motion capture pose and twist measurements
+                                plot_estimator  = False,     # Boolean: plots the estimator filter states and covariance diagonal elements
+                                plot_imu        = False,     # Boolean: plots the IMU measurements
+                                animate_bool    = False,     # Boolean: determines if the animation of vehicle state will play. 
+                                animate_wind    = False,    # Boolean: determines if the animation will include a scaled wind vector to indicate the local wind acting on the UAV. 
+                                verbose         = False,     # Boolean: will print statistics regarding the simulation. 
+                                fname   = None, # Filename is specified if you want to save the animation. The save location is rotorpy/data_out/. 
+                                lookahead = lookahead_values[i],
+                                v_avg = v_values[j],
                     )
+
+        heatmap[i, j] = np.mean(results['hoop_error'])
+
+plt.figure(figsize=(8, 6))
+plt.imshow(heatmap, extent=[0, 3, 20, 200], aspect='auto', cmap='viridis')
+plt.colorbar(label='Mean Squared Error from Quadrotor to Hoop')
+plt.xlabel('Lookahead Time (s)')
+plt.ylabel('Average Velocity along Trajectory (m/s)')
+plt.title('Tracking Error of Hoop Heat Map')
+plt.show()
 
 # There are booleans for if you want to plot all/some of the results, animate the multirotor, and 
 # if you want the simulator to output the EXIT status (end time reached, out of control, etc.)
