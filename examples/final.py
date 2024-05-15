@@ -113,6 +113,8 @@ results = sim_instance.run(t_final      = 10,       # The maximum duration of th
                         v_avg = 160,
             )
 
+
+##### HEAT MAP SWEEP #####
 lookahead_values = np.arange(0, 3.5, 0.5)
 v_values = np.arange(20, 220, 20)
 
@@ -167,6 +169,8 @@ plt.xlabel('Lookahead Time (s)')
 plt.ylabel('Average Velocity along Trajectory (m/s)')
 plt.title('Tracking Error of Hoop Heat Map')
 plt.show()
+
+##### END HEAT MAP SWEEP #####
 
 # There are booleans for if you want to plot all/some of the results, animate the multirotor, and 
 # if you want the simulator to output the EXIT status (end time reached, out of control, etc.)
