@@ -108,6 +108,7 @@ def simulate(world, initial_state, vehicle, controller, trajectory, wind_profile
 
     hoop_estimator = HoopEstimator()
     hoop_error = []
+    hoop_pose = [real_hoop_pose(0)[:3]]
 
     while True:
         exit_status = exit_status or safety_exit(world, safety_margin, state[-1], flat[-1], control[-1])
@@ -128,6 +129,7 @@ def simulate(world, initial_state, vehicle, controller, trajectory, wind_profile
         hoop_estimate = hoop_estimator.step(hoop_cam.measurement(state_hoop, 2, real_hoop_pose(time[-1]), t_step)[:3])
 
         hoop_error.append(np.linalg.norm(real_hoop_pose(time[-1])[:3] - state[-1]['x']) ** 2)
+        hoop_pose.append(real_hoop_pose(time[-1])[:3])
 
         flat.append(sanitize_trajectory_dic(trajectory.update(time[-1], hoop_estimate['filter_state'])))
         mocap_measurements.append(mocap.measurement(state[-1], with_noise=True, with_artifacts=mocap.with_artifacts))
@@ -149,8 +151,12 @@ def simulate(world, initial_state, vehicle, controller, trajectory, wind_profile
     flat            = merge_dicts(flat)
     state_estimate  = merge_dicts(state_estimate)
     hoop_error = np.array(hoop_error)
+    hoop_pose = np.array(hoop_pose)
 
-    return (time, state, control, flat, imu_measurements, imu_gt, mocap_measurements, state_estimate, exit_status, hoop_error)
+    print("Minimum Tracking Error", np.min(hoop_error))
+    print("Cumulative Tracking Error", np.cumsum(hoop_error)[-1])
+
+    return (time, state, control, flat, imu_measurements, imu_gt, mocap_measurements, state_estimate, exit_status, hoop_error, hoop_pose)
 
 def merge_dicts(dicts_in):
     """

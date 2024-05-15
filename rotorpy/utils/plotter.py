@@ -21,7 +21,7 @@ class Plotter():
         self.s, self.s_des, self.M, self.T, self.wind,
         self.accel, self.gyro, self.accel_gt,
         self.x_mc, self.v_mc, self.q_mc, self.w_mc, 
-        self.filter_state, self.covariance, self.sd, self.hoop_error) = self.unpack_results(results)
+        self.filter_state, self.covariance, self.sd, self.hoop_error, self.hoop_pose) = self.unpack_results(results)
 
         self.R = Rotation.from_quat(self.q).as_matrix()
         self.R_mc = Rotation.from_quat(self.q_mc).as_matrix() # Rotation as measured by motion capture.
@@ -43,6 +43,15 @@ class Plotter():
         self.world.draw(ax)
         ax.plot3D(self.x[:,0], self.x[:,1], self.x[:,2], 'b.')
         ax.plot3D(self.x_des[:,0], self.x_des[:,1], self.x_des[:,2], 'k')
+
+        fig = plt.figure('Hoop Trajectory vs. Quadrotor Trajectory')
+        # ax = Axes3Ds(fig)
+        ax = fig.add_subplot(projection='3d')
+        self.world.draw(ax)
+        ax.plot3D(self.x[:,0], self.x[:,1], self.x[:,2], 'b.', label="Quadrotor")
+        ax.plot3D(self.hoop_pose[:,0], self.hoop_pose[:,1], self.hoop_pose[:,2], 'k', label="Hoop")
+        ax.legend()
+        ax.set_title('Hoop Trajectory vs. Quadrotor Trajectory')
 
         # Hoop Error
         (fig, axes) = plt.subplots(nrows=2, ncols=1, sharex=True, num='Hoop Target/Cumulative Target Error vs Time')
@@ -223,6 +232,7 @@ class Plotter():
         mocap               = result['mocap_measurements']
         state_estimate      = result['state_estimate']
         hoop_error          = result['hoop_error']
+        hoop_pose           = result['hoop_pose']
 
         # Unpack each result into NumPy arrays
         x = state['x']
@@ -260,7 +270,7 @@ class Plotter():
             sd = []
             self.estimator_exists = False
 
-        return (time, x, x_des, v, v_des, q, q_des, w, s, s_des, M, T, wind, accel, gyro, accel_gt, x_mc, v_mc, q_mc, w_mc, filter_state, covariance, sd, hoop_error)
+        return (time, x, x_des, v, v_des, q, q_des, w, s, s_des, M, T, wind, accel, gyro, accel_gt, x_mc, v_mc, q_mc, w_mc, filter_state, covariance, sd, hoop_error, hoop_pose)
 
 def plot_map(ax, world_data, equal_aspect=True, color=None, edgecolor=None, alpha=1, world_bounds=True, axes=True):
     """

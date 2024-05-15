@@ -57,8 +57,9 @@ world = World.from_file(os.path.abspath(os.path.join(os.path.dirname(__file__),'
 # "world" is an optional argument. If you don't load a world it'll just provide an empty playground! 
 
 def hoop_pose(t):
-    return np.array([np.cos(2 * np.pi / 15 * t), np.sin(2 * np.pi / 15 * t), 1, 0, 0, 0])
-    # return np.array([ 0, 0, 2.5 * np.sin(2 * np.pi / 10 * t)])
+    # return np.array([0.5, 0.5, 2, 0, 0, 0]) * t + 0.5 * np.array([0, 0, -0.5, 0, 0, 0]) * (t ** 2) + np.array([-2, -2, -2, 0, 0, 0])  # parabola
+    # return np.array([1, 1, 1, 0, 0, 0]) * (t - 3) + np.array([0.5, -0.75, 0.25, 0, 0, 0])  # line
+    return np.array([np.cos(2 * np.pi / 15 * t), np.sin(2 * np.pi / 15 * t), 1, 0, 0, 0])  # circle
 
 # An instance of the simulator can be generated as follows: 
 sim_instance = Environment(vehicle=Multirotor(quad_params),           # vehicle object, must be specified. 
